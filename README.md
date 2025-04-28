@@ -1,60 +1,77 @@
-# USD to TRY Exchange Rate Tracker
+# Exchange Rate Tracker using InfluxDB
 
-This project tracks USD to TRY exchange rates in real-time, stores them in a PostgreSQL database, and visualizes them using Grafana.
+This project fetches USD to TRY exchange rates and stores them in an InfluxDB database.
 
-## Setup
+## Prerequisites
 
-1. Install Python dependencies:
+- Python 3.6+
+- InfluxDB (version 1.x)
+- yfinance library
+- influxdb library (Python client for InfluxDB 1.x)
+- pandas library
 
-```bash
-pip install -r requirements.txt
+## Setup Instructions
+
+1. Install the required Python packages:
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Setup InfluxDB 1.x:
+   - Download and install InfluxDB 1.x from https://portal.influxdata.com/downloads/
+   - Extract the downloaded zip to a location of your choice (e.g., `C:\Users\Victus\influxdb`)
+   - Navigate to the extracted directory and run InfluxDB:
+     ```
+     cd C:\Users\Victus\influxdb\influxdb-1.11.8-1
+     .\influxd.exe
+     ```
+
+3. (Optional) Configure InfluxDB credentials:
+   - By default, InfluxDB 1.x runs without authentication enabled
+   - If you've set up authentication, update the following variables in both `save_database.py` and `query_data.py`:
+     ```python
+     INFLUXDB_USER = "your_username"
+     INFLUXDB_PASS = "your_password"
+     ```
+
+## Running the Application
+
+1. Start InfluxDB:
+   ```
+   cd C:\Users\Victus\influxdb\influxdb-1.11.8-1
+   .\influxd.exe
+   ```
+
+2. In another terminal, run the application:
+   ```
+   python save_database.py
+   ```
+
+The application will:
+1. Connect to InfluxDB and create a database called "exchange_rates" if it doesn't exist
+2. Fetch the USD to TRY exchange rate every 30 seconds
+3. Store each rate in the InfluxDB database with a timestamp
+
+## Querying Data
+
+To query the stored data, run:
+```
+python query_data.py
 ```
 
-2. Start the Docker containers:
+This script will:
+1. Connect to the InfluxDB database
+2. Retrieve exchange rate data from the past 24 hours
+3. Display statistics and the last 10 records
 
-```bash
-docker-compose up -d
+You can also interact directly with InfluxDB using the InfluxDB CLI:
+```
+cd C:\Users\Victus\influxdb\influxdb-1.11.8-1
+.\influx.exe
 ```
 
-3. Run the data collection script:
-
-```bash
-python save_database.py
+Then in the InfluxDB shell:
 ```
-
-## Accessing the Services
-
-- PostgreSQL:
-  - Host: localhost
-  - Port: 5432
-  - Database: doviz
-  - Username: postgres
-  - Password: postgres
-
-- Grafana:
-  - URL: http://localhost:3000
-  - Username: admin
-  - Password: admin
-
-## Setting up Grafana
-
-1. Log in to Grafana at http://localhost:3000
-2. Add PostgreSQL as a data source:
-   - Type: PostgreSQL
-   - Host: postgres:5432 (important: use 'postgres' not 'localhost')
-   - Database: doviz
-   - User: postgres
-   - Password: postgres
-   - SSL Mode: Disable
-3. Click "Save & Test" to verify the connection
-4. Create a new dashboard and add a time series panel
-5. Use this SQL query for the panel:
-
-```sql
-SELECT
-  timestamp as time,
-  usd_to_try_rate as value
-FROM exchange_rates
-ORDER BY timestamp
+USE exchange_rates
+SELECT * FROM usd_to_try ORDER BY time DESC LIMIT 10
 ```
-"# DovizProject" 

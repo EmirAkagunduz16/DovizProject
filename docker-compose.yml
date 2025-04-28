@@ -1,32 +1,44 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:latest
-    container_name: doviz_postgres
-    environment:
-      POSTGRES_DB: doviz
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 03806
-      POSTGRES_HOST_AUTH_METHOD: trust
+  influxdb:
+    image: influxdb:2.7.1
+    container_name: doviz_influxdb
     ports:
-      - "5432:5432"
+      - "8087:8086"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    command: postgres -c 'max_connections=1000'
+      - influxdb_data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=emiraka
+      - DOCKER_INFLUXDB_INIT_PASSWORD=emir16gs
+      - DOCKER_INFLUXDB_INIT_ORG=MyWork
+      - DOCKER_INFLUXDB_INIT_BUCKET=exchange_rates
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=CUuxTbAY5jhbhL3RV8HUPJNAXC9P_1ZjQ5hzMK05nKR3iFl8vWF8ESLrkS7IYu7_nEU1yOY6Qvx6xqQ2wU1R7A==
+    command: influxd
+    networks:
+      - doviz_network
 
   grafana:
     image: grafana/grafana:latest
     container_name: doviz_grafana
     ports:
       - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
     depends_on:
-      - postgres
+      - influxdb
+    networks:
+      - doviz_network
+
+networks:
+  doviz_network:
+    driver: bridge
 
 volumes:
-  postgres_data:
+  influxdb_data:
   grafana_data: 
