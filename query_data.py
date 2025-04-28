@@ -1,57 +1,51 @@
-from influxdb import InfluxDBClient
+from influxdb_client import InfluxDBClient
 from datetime import datetime, timedelta
 import pandas as pd
 
-# InfluxDB connection parameters - must match save_database.py
-INFLUXDB_HOST = "localhost"
-INFLUXDB_PORT = 8086
-INFLUXDB_USER = "emiraka"  # Your username
-INFLUXDB_PASS = "emir16gs"  # Your password
-INFLUXDB_DB = "exchange_rates"  # The database to query
+# InfluxDB connection parameters - match save_database.py
+INFLUXDB_URL = "http://localhost:8087"
+INFLUXDB_TOKEN = "CUuxTbAY5jhbhL3RV8HUPJNAXC9P_1ZjQ5hzMK05nKR3iFl8vWF8ESLrkS7IYu7_nEU1yOY6Qvx6xqQ2wU1R7A=="
+INFLUXDB_ORG = "MyWork"
+INFLUXDB_BUCKET = "exchange_rates"
 
 def query_exchange_rates(hours=24):
     """Query exchange rates for the last specified hours"""
     try:
-        # Create a client connection to InfluxDB with authentication
-        client = InfluxDBClient(host=INFLUXDB_HOST, port=INFLUXDB_PORT, 
-                               username=INFLUXDB_USER, password=INFLUXDB_PASS,
-                               database=INFLUXDB_DB)
+        # Create a client connection to InfluxDB with token authentication
+        client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, org=INFLUXDB_ORG)
         
         # Prepare time range for query
         time_now = datetime.utcnow()
         time_from = time_now - timedelta(hours=hours)
-        time_from_str = time_from.strftime('%Y-%m-%dT%H:%M:%SZ')
         
-        # InfluxQL query (used in InfluxDB 1.x)
-        query = f"SELECT * FROM usd_to_try WHERE time > '{time_from_str}'"
+        # Flux query (used in InfluxDB 2.x)
+        query = f'''
+        from(bucket: "{INFLUXDB_BUCKET}")
+            |> range(start: -{hours}h)
+            |> filter(fn: (r) => r._measurement == "usd_to_try")
+            |> filter(fn: (r) => r._field == "rate")
+        '''
         
         # Execute the query
-        result = client.query(query)
+        result = client.query_api().query_data_frame(query=query, org=INFLUXDB_ORG)
         client.close()
         
-        # Convert to pandas DataFrame
-        if not result:
+        # Check if result is empty
+        if result is None or len(result) == 0:
             print("No data found")
             return None
             
-        points = list(result.get_points(measurement='usd_to_try'))
-        if not points:
-            print("No data found")
-            return None
-            
-        result_df = pd.DataFrame(points)
+        # Process the DataFrame
+        result_df = result.copy()
         
         # Process the result for display
         print(f"Retrieved {len(result_df)} records from the past {hours} hours")
         
         # Display the results
-        display_df = result_df[['time', 'rate']].rename(columns={
-            'time': 'Time', 
-            'rate': 'USD/TRY Rate'
+        display_df = pd.DataFrame({
+            'Time': result_df['_time'],
+            'USD/TRY Rate': result_df['_value']
         })
-        
-        # Convert the time string to datetime
-        display_df['Time'] = pd.to_datetime(display_df['Time'])
         
         # Calculate statistics
         if not display_df.empty:
