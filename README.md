@@ -1,77 +1,91 @@
-# Exchange Rate Tracker using InfluxDB
+# Doviz Project - USD/TRY Exchange Rate Monitor
 
-This project fetches USD to TRY exchange rates and stores them in an InfluxDB database.
+This project monitors USD/TRY exchange rates in real-time using InfluxDB for data storage and Grafana for visualization.
+
+## Features
+
+- Real-time USD/TRY exchange rate monitoring
+- Data storage in InfluxDB
+- Beautiful visualizations with Grafana
+- Docker-based deployment
 
 ## Prerequisites
 
-- Python 3.6+
-- InfluxDB (version 1.x)
-- yfinance library
-- influxdb library (Python client for InfluxDB 1.x)
-- pandas library
+- Docker and Docker Compose
+- Python 3.x
+- Required Python packages (install using `pip install -r requirements.txt`)
+
+## Project Structure
+
+```
+DovizProject/
+├── docker-compose.yml    # Docker configuration for InfluxDB and Grafana
+├── save_database.py      # Python script to fetch and save exchange rates
+└── README.md            # This file
+```
 
 ## Setup Instructions
 
-1. Install the required Python packages:
-   ```
-   pip install -r requirements.txt
-   ```
-
-2. Setup InfluxDB 1.x:
-   - Download and install InfluxDB 1.x from https://portal.influxdata.com/downloads/
-   - Extract the downloaded zip to a location of your choice (e.g., `C:\Users\Victus\influxdb`)
-   - Navigate to the extracted directory and run InfluxDB:
-     ```
-     cd C:\Users\Victus\influxdb\influxdb-1.11.8-1
-     .\influxd.exe
-     ```
-
-3. (Optional) Configure InfluxDB credentials:
-   - By default, InfluxDB 1.x runs without authentication enabled
-   - If you've set up authentication, update the following variables in both `save_database.py` and `query_data.py`:
-     ```python
-     INFLUXDB_USER = "your_username"
-     INFLUXDB_PASS = "your_password"
-     ```
-
-## Running the Application
-
-1. Start InfluxDB:
-   ```
-   cd C:\Users\Victus\influxdb\influxdb-1.11.8-1
-   .\influxd.exe
+1. **Start Docker Containers**
+   ```bash
+   docker-compose up -d
    ```
 
-2. In another terminal, run the application:
-   ```
+2. **Access Services**
+   - InfluxDB UI: http://localhost:8087
+     - Username: emiraka
+     - Password: emir16gs
+   - Grafana: http://localhost:3000
+     - Username: admin
+     - Password: admin123
+
+3. **Configure Grafana Data Source**
+   - Go to Configuration → Data Sources
+   - Add InfluxDB data source with:
+     - URL: http://influxdb:8086
+     - Organization: MyWork
+     - Bucket: exchange_rates
+     - Token: (your InfluxDB token)
+
+4. **Run the Python Script**
+   ```bash
    python save_database.py
    ```
 
-The application will:
-1. Connect to InfluxDB and create a database called "exchange_rates" if it doesn't exist
-2. Fetch the USD to TRY exchange rate every 30 seconds
-3. Store each rate in the InfluxDB database with a timestamp
+## Creating a Dashboard in Grafana
 
-## Querying Data
+1. Click "+" → New dashboard
+2. Add visualization
+3. Choose Time series
+4. Configure query:
+   - From: exchange_rates
+   - Measurement: usd_to_try
+   - Field: rate
 
-To query the stored data, run:
-```
-python query_data.py
-```
+## Troubleshooting
 
-This script will:
-1. Connect to the InfluxDB database
-2. Retrieve exchange rate data from the past 24 hours
-3. Display statistics and the last 10 records
+### Common Issues
 
-You can also interact directly with InfluxDB using the InfluxDB CLI:
-```
-cd C:\Users\Victus\influxdb\influxdb-1.11.8-1
-.\influx.exe
-```
+1. **Grafana can't connect to InfluxDB**
+   - Verify the URL in Grafana data source is `http://influxdb:8086`
+   - Check if both containers are running: `docker ps`
 
-Then in the InfluxDB shell:
-```
-USE exchange_rates
-SELECT * FROM usd_to_try ORDER BY time DESC LIMIT 10
-```
+2. **Permission Errors**
+   - Ensure your InfluxDB token has read/write permissions
+   - Verify organization name matches in both InfluxDB and Grafana
+
+3. **Port Conflicts**
+   - Check if ports 3000 (Grafana) and 8087 (InfluxDB) are available
+   - Modify ports in docker-compose.yml if needed
+
+## API Information
+
+This project uses the Open Exchange Rates API to fetch USD/TRY exchange rates. The API is free to use and doesn't require an API key.
+
+## Contributing
+
+Feel free to submit issues and enhancement requests!
+
+## License
+
+This project is licensed under the MIT License.
